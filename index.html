@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI 홈 CCTV 자율 보안관제</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#07111f;color:#eef6ff;font-family:system-ui,"Noto Sans KR",sans-serif}
+main{max-width:1050px;margin:auto;padding:40px 20px 60px}.badge{display:inline-block;padding:7px 12px;border:1px solid #31516e;border-radius:30px;color:#9bd0ff;font-size:13px}
+h1{font-size:clamp(30px,5vw,48px);margin:18px 0 12px}.hero p{line-height:1.75;color:#c4d4e5}.paper{font-size:13px;color:#87a7c5;line-height:1.6}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:25px}.card{background:#0d1b2e;border:1px solid #213954;border-radius:20px;padding:22px}
+h2{font-size:18px;margin:0 0 8px}.sub{color:#9eb1c8;font-size:13px;line-height:1.6;margin-bottom:17px}
+button{font:inherit;cursor:pointer}.preset,.reset,.analyze{padding:11px 14px;border-radius:11px;font-weight:800;border:1px solid #2d4e6c}.preset,.reset{background:#17314c;color:#dceeff}.analyze{background:#4d9df2;color:white;border:0;flex:1}
+.presets,.actions{display:flex;gap:9px;flex-wrap:wrap}.actions{margin-top:15px}.form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+label{font-size:12px;color:#a9bdd1}input{width:100%;margin-top:6px;padding:12px;border-radius:10px;border:1px solid #29445f;background:#081625;color:white}
+.result{grid-column:1/-1}.top{display:flex;justify-content:space-between;align-items:center;gap:20px}.status{font-size:29px;font-weight:900}.status small{display:block;font-size:12px;color:#9eb1c8;margin-top:4px}.score{font-size:42px;font-weight:900}
+.meter{height:14px;background:#1a2c42;border-radius:20px;margin:20px 0 8px;overflow:hidden}.fill{height:100%;width:0;transition:.5s;background:#47d7a0}.scale{display:flex;justify-content:space-between;font-size:11px;color:#8299b0}
+.decision{margin-top:17px;padding:15px;border-radius:12px;background:#091a2a;border:1px solid #25435e;line-height:1.6}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.step{padding:14px;border-radius:13px;background:#0a1929;border:1px solid #203b57}.step b{color:#73b9ff}.step p{font-size:13px;color:#b7c9dc;line-height:1.5;margin-bottom:0}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.metric{padding:14px;border-radius:13px;background:#0a1929;border:1px solid #203b57}.metric span{font-size:11px;color:#8fa7be}.metric strong{display:block;font-size:23px;margin-top:6px}
+.error{display:none;margin-top:13px;padding:12px;border-radius:10px;background:#321a22;border:1px solid #70313e;color:#ffb9c1;font-size:13px}.log{margin-top:15px;padding:12px;border-radius:12px;background:#07121f;border:1px solid #1d344b;color:#9fb4c9;font:12px monospace;white-space:pre-wrap}
+.note,.footer{font-size:12px;color:#8299b0;line-height:1.6}.footer{text-align:center;margin-top:25px}
+@media(max-width:720px){.grid{grid-template-columns:1fr}.result{grid-column:auto}.metrics{grid-template-columns:1fr 1fr}.steps{grid-template-columns:1fr}.form{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<section class="hero">
+<span class="badge">🛡️ 논문 결과 체험형 앱</span>
+<h1>AI 홈 CCTV 자율 보안관제</h1>
+<p><strong>홈 CCTV를 사용하는 사람이 네트워크 트래픽의 보안 상태를 확인할 때, 이 앱이 논문에서 제안한 위험도 점수와 0.5 임계값을 이용해 정상 또는 악성 트래픽을 판별하고 위험한 트래픽의 자율 차단 결과를 보여준다.</strong></p>
+<div class="paper">연결 논문: 「생체 모방형 분산 신경 구조 기반: 홈 CCTV 사생활 영상 유출 및 악성 트래픽 방지를 위한 단말 자율 차단 아키텍처 제안」</div>
+</section>
+
+<section class="grid">
+<article class="card">
+<h2>① 트래픽 입력</h2>
+<div class="sub">정상, 악성, 잘못된 입력을 직접 시험해 보세요.</div>
+<div class="presets">
+<button class="preset" onclick="preset('normal')">🟢 정상 데이터</button>
+<button class="preset" onclick="preset('bad')">🔴 악성 데이터</button>
+<button class="preset" onclick="preset('invalid')">⚠️ 잘못된 데이터</button>
+</div>
+<div class="form">
+<label>패킷 크기<input id="size" placeholder="예: 120"></label>
+<label>패킷 빈도<input id="freq" placeholder="예: 5"></label>
+<label>연결 간격(초)<input id="interval" placeholder="예: 1.2"></label>
+<label>연결 수<input id="conn" placeholder="예: 2"></label>
+</div>
+<div class="actions"><button class="analyze" onclick="analyze()">분석하기</button><button class="reset" onclick="resetApp()">초기화</button></div>
+<div id="error" class="error"></div>
+</article>
+
+<article class="card">
+<h2>② 처음 온 사람도 바로 사용</h2>
+<div class="sub">세 단계만 따라 하면 됩니다.</div>
+<div class="steps">
+<div class="step"><b>STEP 1</b><p>정상 또는 악성 트래픽을 넣습니다.</p></div>
+<div class="step"><b>STEP 2</b><p>분석하기를 눌러 위험도를 확인합니다.</p></div>
+<div class="step"><b>STEP 3</b><p>잘못된 값도 넣어 앱이 멈추지 않는지 확인합니다.</p></div>
+</div>
+<div id="log" class="log">[대기] 분석 기록이 없습니다.</div>
+</article>
+
+<article class="card result">
+<div class="top"><div id="status" class="status">분석 대기<small>트래픽을 입력하고 분석하기를 눌러주세요.</small></div><div id="score" class="score">—</div></div>
+<div class="meter"><div id="fill" class="fill"></div></div>
+<div class="scale"><span>0.00 정상</span><span>0.50 차단 임계값</span><span>1.00 위험</span></div>
+<div id="decision" class="decision">논문의 핵심 규칙: <strong>위험도 0.50 이상이면 위험 트래픽으로 판단하여 자율 차단 대상으로 처리합니다.</strong></div>
+</article>
+
+<article class="card">
+<h2>③ 논문 실험 결과</h2>
+<div class="sub">논문에 기재된 결과를 앱에서 확인할 수 있습니다.</div>
+<div class="metrics">
+<div class="metric"><span>정상 평균</span><strong>0.082</strong></div>
+<div class="metric"><span>악성 평균</span><strong>0.841</strong></div>
+<div class="metric"><span>차이</span><strong>0.759</strong></div>
+<div class="metric"><span>F1-Score</span><strong>0.981</strong></div>
+</div>
+<p class="note">※ 제출 전 원 실험 로그/코드와 위 수치를 대조하세요. 실시간 판정은 논문의 네트워크 특성을 활용한 체험용 브라우저 시뮬레이션입니다.</p>
+</article>
+
+<article class="card">
+<h2>🛑 단말 자율 차단</h2>
+<div class="sub">위험도가 임계값을 넘으면 중앙 서버의 판단을 기다리지 않고 단말 수준에서 차단하는 개념을 체험합니다.</div>
+<div id="block" class="decision"><strong>대기 중</strong><br>위험 트래픽을 분석하면 결과가 표시됩니다.</div>
+</article>
+</section>
+<div class="footer">로그인 없음 · 외부 API 없음 · 개인정보 없음 · 단일 HTML 실행<br>※ 실제 CCTV 장비나 네트워크를 차단하지 않는 시뮬레이터입니다.</div>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const data={
+normal:[120,5,1.2,2],
+bad:[980,85,0.08,47],
+invalid:["abc","-10","",999999999]
+};
+function preset(type){
+ const v=data[type];["size","freq","interval","conn"].forEach((id,i)=>$(id).value=v[i]);
+ $("error").style.display="none"; log("입력",type==="normal"?"정상 예시":type==="bad"?"악성 예시":"오류 예시");
+}
+function num(id,label){
+ const raw=$(id).value.trim(); if(!raw) throw Error(label+"을(를) 입력해주세요.");
+ const n=Number(raw); if(!Number.isFinite(n)) throw Error(label+"은(는) 숫자로 입력해주세요.");
+ if(n<0) throw Error(label+"은(는) 0 이상이어야 합니다."); return n;
+}
+function risk(s,f,i,c){
+ const a=Math.min(s/1000,1),b=Math.min(f/100,1),d=1-Math.min(i/2,1),e=Math.min(c/50,1);
+ return Math.max(0,Math.min(1,a*.25+b*.35+d*.20+e*.20));
+}
+function analyze(){
+ try{
+  const s=num("size","패킷 크기"),f=num("freq","패킷 빈도"),i=num("interval","연결 간격"),c=num("conn","연결 수");
+  const r=risk(s,f,i,c),bad=r>=.5;
+  $("error").style.display="none";$("score").textContent=r.toFixed(2);$("fill").style.width=(r*100)+"%";$("fill").style.background=bad?"#ff6f7d":"#47d7a0";
+  if(bad){
+   $("status").innerHTML='🔴 위험<small>0.50 이상: 자율 차단</small>';
+   $("decision").innerHTML="<strong>⚠️ 위험 트래픽 감지</strong><br>위험도 "+r.toFixed(2)+"가 0.50 이상이므로 차단 대상으로 처리합니다.";
+   $("block").innerHTML="<strong>🛑 자율 차단 완료</strong><br>단말 수준에서 위험 트래픽을 차단하는 과정을 시뮬레이션했습니다.<br><small>실제 네트워크 차단은 수행하지 않습니다.</small>";
+  }else{
+   $("status").innerHTML='🟢 정상<small>0.50 미만: 통과</small>';
+   $("decision").innerHTML="<strong>✓ 정상 트래픽</strong><br>위험도 "+r.toFixed(2)+"가 0.50 미만이므로 통과시킵니다.";
+   $("block").innerHTML="<strong>✓ 통과</strong><br>현재 트래픽은 자율 차단 기준에 도달하지 않았습니다.";
+  }
+  log("판정","위험도 "+r.toFixed(2)+" → "+(bad?"차단":"통과"));
+ }catch(e){
+  $("error").textContent="⚠️ "+e.message+" 앱은 계속 실행됩니다. 값을 수정해 다시 분석하세요.";
+  $("error").style.display="block";log("입력 오류",e.message);
+ }
+}
+function log(a,b){$("log").textContent="["+new Date().toLocaleTimeString("ko-KR")+"] "+a+" | "+b+"\n"+$("log").textContent}
+function resetApp(){["size","freq","interval","conn"].forEach(x=>$(x).value="");$("error").style.display="none";$("status").innerHTML="분석 대기<small>트래픽을 입력하고 분석하기를 눌러주세요.</small>";$("score").textContent="—";$("fill").style.width="0";$("block").innerHTML="<strong>대기 중</strong><br>위험 트래픽을 분석하면 결과가 표시됩니다."}
+</script>
+</body>
+</html>
